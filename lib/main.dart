@@ -1,68 +1,85 @@
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
+import 'communicator/queue.dart';
 
 void main() {
-  runApp(const MaterialApp(title: '画板', home: SafeArea(child: CanvasPage())));
+    runApp(const MaterialApp(title: '画板v1', home: SafeArea(child: CanvasPage())));
 }
 
 class CanvasPage extends StatefulWidget {
-  const CanvasPage({Key? key}) : super(key: key);
+    const CanvasPage({Key? key}) : super(key: key);
 
-  @override
-  State<CanvasPage> createState() => _CanvasPageState();
+    @override
+    State<CanvasPage> createState() => _CanvasPageState();
 }
 
 class _CanvasPageState extends State<CanvasPage> {
-  Path path = Path();
+    Path path = Path();
+    PositionQueue queue = PositionQueue();
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('画板')),
-      body: Listener(
-          // 落下
-          onPointerDown: (e) {
-            path.moveTo(e.localPosition.dx, e.localPosition.dy);
-            print('mvTo $e.localPosition.dx, $e.localPosition.dy');
-            setState(() {});
-          },
-          // 移动
-          onPointerMove: (e) {
-            print('lineTo $e.localPosition.dx, $e.localPosition.dy');
-            path.lineTo(e.localPosition.dx, e.localPosition.dy);
-            setState(() {});
-          },
-          // 离开
-          onPointerUp: (e) {
-            path.moveTo(e.localPosition.dx, e.localPosition.dy);
-            path.close();
-            setState(() {});
-          },
-          child: CustomPaint(foregroundPainter: CanvasPaint(path: path), child: Container(color: Colors.transparent))),
-    );
-  }
+    void sendDraw(double x, y, bool is_drag) async {
+        Dio dio = new Dio();
+        Response resp = await dio.post("http://192.168.1.12:8000/moveMouse", data: {
+          'x': x,
+          'y': y,
+          'is_drag': is_drag,
+        });
+    }
+
+    @override
+    Widget build(BuildContext context) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('画板v1')),
+        body: Listener(
+            // 落下
+            onPointerDown: (e) {
+              path.moveTo(e.localPosition.dx, e.localPosition.dy);
+              // print('mvTo $e.localPosition.dx, $e.localPosition.dy');
+              // sendDraw(e.localPosition.dx, e.localPosition.dy, false);
+              queue.addToQueue(Position(e.localPosition.dx, e.localPosition.dy, false));
+              setState(() {});
+            },
+            // 移动
+            onPointerMove: (e) {
+              // print('lineTo $e.localPosition.dx, $e.localPosition.dy');
+              path.lineTo(e.localPosition.dx, e.localPosition.dy);
+              // sendDraw(e.localPosition.dx, e.localPosition.dy, true);
+              queue.addToQueue(Position(e.localPosition.dx, e.localPosition.dy, true));
+              setState(() {});
+            },
+            // 离开
+            onPointerUp: (e) {
+              path.moveTo(e.localPosition.dx, e.localPosition.dy);
+              queue.addToQueue(Position(e.localPosition.dx, e.localPosition.dy, false));
+              path.close();
+              setState(() {});
+            },
+            child: CustomPaint(foregroundPainter: CanvasPaint(path: path), child: Container(color: Colors.transparent))),
+      );
+    }
 }
 
 class CanvasPaint extends CustomPainter {
-  Path? path;
-  Color? color; // 画笔颜色
-  double? width;
+    Path? path;
+    Color? color; // 画笔颜色
+    double? width;
 
-  CanvasPaint({required this.path, this.color = Colors.black, this.width = 5});
+    CanvasPaint({required this.path, this.color = Colors.black, this.width = 5});
 
-  @override
-  void paint(Canvas canvas, Size size) {
-    Paint paint = Paint()
-      ..color = color!
-      ..strokeWidth = width!
-      ..strokeCap = StrokeCap.round
-      ..style = PaintingStyle.stroke;
-    canvas.drawPath(path!, paint);
-  }
+    @override
+    void paint(Canvas canvas, Size size) {
+      Paint paint = Paint()
+        ..color = color!
+        ..strokeWidth = width!
+        ..strokeCap = StrokeCap.round
+        ..style = PaintingStyle.stroke;
+      canvas.drawPath(path!, paint);
+    }
 
-  // 是否需要重新绘制
-  @override
-  bool shouldRepaint(covariant CanvasPaint oldDelegate) {
-    // return oldDelegate.path != path;
-    return true;
-  }
+    // 是否需要重新绘制
+    @override
+    bool shouldRepaint(covariant CanvasPaint oldDelegate) {
+      // return oldDelegate.path != path;
+      return true;
+    }
 }
