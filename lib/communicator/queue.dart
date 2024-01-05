@@ -67,7 +67,7 @@ class TcpClient {
         if (_retries < maxRetries) {
             _retries++;
             print('Attempt to reconnect (${_retries}/$maxRetries)');
-            Future.delayed(Duration(seconds: 2), () {
+            Future.delayed(const Duration(seconds: 2), () {
                 connect();
             });
         } else {
@@ -107,16 +107,26 @@ class PositionQueue {
     late Timer _timer;
     late TcpClient _client;
     final lock = SimpleLock();
+    int _x = 0;
+    int _y = 0;
 
     PositionQueue() {
         _timer = Timer.periodic(const Duration(milliseconds: 200), (Timer t) => _checkQueue());
+        // _client = TcpClient('30.75.128.137', 8080);
         _client = TcpClient('192.168.1.16', 8080);
         _client.connect();
     }
 
     void addToQueue(Position item) {
         // _queue.add(item);
-        _client.sendPos(item.x.truncate(), item.y.truncate(), item.isDrag ? 1: 0);
+        int xTmp = item.x.truncate();
+        int yTmp = item.y.truncate();
+        if(xTmp == _x && yTmp == _y) {
+            return;
+        }
+        _client.sendPos(xTmp, yTmp, item.isDrag ? 1: 0);
+        _x = xTmp;
+        _y = yTmp;
     }
 
     void _checkQueue() {
@@ -155,7 +165,7 @@ class PositionQueue {
       try {
             Dio dio = Dio();
             String jsonData = jsonEncode(data);
-            Response resp = await dio.post("http://30.75.128.204:8000/moveMouse", data: jsonData);
+            Response resp = await dio.post("http://30.75.128.137:8000/moveMouse", data: jsonData);
       } finally {
         lock.unlock();
       }
