@@ -14,6 +14,7 @@ class TcpClient {
 
     Future<void> connect() async {
         try {
+            logger.i("start to connect to ${host}:${port}");
             _socket = await Socket.connect(host, port);
             logger.i('Connected to: ${_socket!.remoteAddress.address}:${_socket!.remotePort}');
             _socket!.listen(
@@ -99,8 +100,16 @@ class TcpClient {
         await _socket!.flush();
     }
 
-    void closeConnection() async {
-        await _socket!.close();
+    Future<void> closeConnection() async {
+        if (_socket == null) {
+            return;
+        }
+        try {
+            await _socket!.close();
+            _socket = null;
+        } on Exception catch (e) {
+            logger.e('closeConnection SocketException: $e');
+        }
     }
     // 发送数据的方法
     // 其他方法

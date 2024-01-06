@@ -15,10 +15,10 @@ class PositionSender {
     int _x = 0;
     int _y = 0;
 
-    PositionSender() {
-        _timer = Timer.periodic(const Duration(milliseconds: 10), (Timer t) => _checkQueue());
+    PositionSender(String addr, int port) {
+        // _timer = Timer.periodic(const Duration(milliseconds: 10), (Timer t) => _checkQueue());
         // _client = TcpClient('30.75.128.137', 8080);
-        _client = TcpClient('192.168.1.12', 8080, maxRetries: 10);
+        _client = TcpClient(addr, port, maxRetries: 5);
         _client.connect();
     }
 
@@ -64,6 +64,14 @@ class PositionSender {
             _client.flush();
             // sendDraw(jsonArray);
             // jsonArray = [];
+        }
+    }
+
+    Future<void> disconnect() async {
+        try {
+            await _client.closeConnection();
+        } on Exception catch (e) {
+            logger.e('disconnect Exception: $e');
         }
     }
 
