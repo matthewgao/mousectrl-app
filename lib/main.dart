@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
-import 'communicator/queue.dart';
+import 'communicator/def.dart';
+import 'communicator/sender.dart';
+import 'utils/logger.dart';
 
 void main() {
-    runApp(const MaterialApp(title: '画板v1', home: SafeArea(child: CanvasPage())));
+    runApp(const MaterialApp(title: '软定义手写板', home: SafeArea(child: CanvasPage())));
 }
 
 class CanvasPage extends StatefulWidget {
@@ -15,47 +17,51 @@ class CanvasPage extends StatefulWidget {
 
 class _CanvasPageState extends State<CanvasPage> {
     Path path = Path();
-    PositionQueue queue = PositionQueue();
+    PositionSender sender = PositionSender();
 
-    void sendDraw(double x, y, bool is_drag) async {
-        Dio dio = new Dio();
-        Response resp = await dio.post("http://192.168.1.12:8000/moveMouse", data: {
-          'x': x,
-          'y': y,
-          'is_drag': is_drag,
-        });
-    }
+    // void sendDraw(double x, y, bool is_drag) async {
+    //     Dio dio = new Dio();
+    //     Response resp = await dio.post("http://192.168.1.12:8000/moveMouse", data: {
+    //       'x': x,
+    //       'y': y,
+    //       'is_drag': is_drag,
+    //     });
+    // }
 
     @override
     Widget build(BuildContext context) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('画板v1')),
-        body: Listener(
-            // 落下
-            onPointerDown: (e) {
-              path.moveTo(e.localPosition.dx, e.localPosition.dy);
-              // print('mvTo $e.localPosition.dx, $e.localPosition.dy');
-              // sendDraw(e.localPosition.dx, e.localPosition.dy, false);
-              queue.addToQueue(Position(e.localPosition.dx, e.localPosition.dy, false));
-              setState(() {});
-            },
-            // 移动
-            onPointerMove: (e) {
-              // print('lineTo $e.localPosition.dx, $e.localPosition.dy');
-              path.lineTo(e.localPosition.dx, e.localPosition.dy);
-              // sendDraw(e.localPosition.dx, e.localPosition.dy, true);
-              queue.addToQueue(Position(e.localPosition.dx, e.localPosition.dy, true));
-              setState(() {});
-            },
-            // 离开
-            onPointerUp: (e) {
-              path.moveTo(e.localPosition.dx, e.localPosition.dy);
-              queue.addToQueue(Position(e.localPosition.dx, e.localPosition.dy, false));
-              path.close();
-              setState(() {});
-            },
-            child: CustomPaint(foregroundPainter: CanvasPaint(path: path), child: Container(color: Colors.transparent))),
-      );
+        return Scaffold(
+            appBar: AppBar(title: const Text('画板v1')),
+            body: Listener(
+                // 落下
+                onPointerDown: (e) {
+                    path.moveTo(e.localPosition.dx, e.localPosition.dy);
+                    // logger.d('mvTo $e.localPosition.dx, $e.localPosition.dy');
+                    // sendDraw(e.localPosition.dx, e.localPosition.dy, false);
+                    sender.addToSender(Position(e.localPosition.dx, e.localPosition.dy, false));
+                    setState(() {});
+                },
+                // 移动
+                onPointerMove: (e) {
+                    // logger.d('lineTo $e.localPosition.dx, $e.localPosition.dy');
+                    path.lineTo(e.localPosition.dx, e.localPosition.dy);
+                    // sendDraw(e.localPosition.dx, e.localPosition.dy, true);
+                    sender.addToSender(Position(e.localPosition.dx, e.localPosition.dy, true));
+                    setState(() {});
+                },
+                // 离开
+                onPointerUp: (e) {
+                    path.moveTo(e.localPosition.dx, e.localPosition.dy);
+                    sender.addToSender(Position(e.localPosition.dx, e.localPosition.dy, false));
+                    path.close();
+                    setState(() {});
+                },
+                child: CustomPaint(
+                    foregroundPainter: CanvasPaint(path: path), 
+                    child: Container(color: Colors.transparent)
+                )
+            ),
+        );
     }
 }
 
@@ -68,18 +74,18 @@ class CanvasPaint extends CustomPainter {
 
     @override
     void paint(Canvas canvas, Size size) {
-      Paint paint = Paint()
-        ..color = color!
-        ..strokeWidth = width!
-        ..strokeCap = StrokeCap.round
-        ..style = PaintingStyle.stroke;
-      canvas.drawPath(path!, paint);
+        Paint paint = Paint()
+            ..color = color!
+            ..strokeWidth = width!
+            ..strokeCap = StrokeCap.round
+            ..style = PaintingStyle.stroke;
+        canvas.drawPath(path!, paint);
     }
 
     // 是否需要重新绘制
     @override
     bool shouldRepaint(covariant CanvasPaint oldDelegate) {
-      // return oldDelegate.path != path;
-      return true;
+        // return oldDelegate.path != path;
+        return true;
     }
 }
