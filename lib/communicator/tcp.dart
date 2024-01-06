@@ -49,7 +49,7 @@ class TcpClient {
         }
     }
 
-    Future<void> sendPos(int x, int y, int isDrag) async {
+    Future<void> sendPosAndFlush(int x, int y, int isDrag) async {
         if (_socket == null) {
             logger.w('Socket is not connected');
             return;
@@ -73,6 +73,30 @@ class TcpClient {
         // // 关闭连接
         // await _socket.close();
         // print('Disconnected');
+    }
+
+    void sendPos(int x, int y, int isDrag) async {
+        if (_socket == null) {
+            logger.w('Socket is not connected');
+            return;
+        }
+        // 将整数值转换为字节
+        // 这里我们使用字节序为大端（network byte order）的方式
+        var data = ByteData(4)..setInt32(0, x, Endian.big);
+        List<int> bytes = data.buffer.asUint8List();
+        _socket!.add(bytes);
+
+        data = ByteData(4)..setInt32(0, y, Endian.big);
+        bytes = data.buffer.asUint8List();
+        _socket!.add(bytes);
+
+        data = ByteData(4)..setInt32(0, isDrag, Endian.big);
+        bytes = data.buffer.asUint8List();
+        _socket!.add(bytes);
+    }
+
+    Future<void> flush() async {
+        await _socket!.flush();
     }
 
     void closeConnection() async {

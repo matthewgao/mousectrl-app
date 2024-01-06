@@ -16,20 +16,23 @@ class PositionSender {
     int _y = 0;
 
     PositionSender() {
-        _timer = Timer.periodic(const Duration(milliseconds: 200), (Timer t) => _checkQueue());
+        _timer = Timer.periodic(const Duration(milliseconds: 10), (Timer t) => _checkQueue());
         // _client = TcpClient('30.75.128.137', 8080);
-        _client = TcpClient('192.168.1.16', 8080, maxRetries: 10);
+        _client = TcpClient('192.168.1.12', 8080, maxRetries: 10);
         _client.connect();
     }
 
     void addToSender(Position item) {
-        // _queue.add(item);
-        int xTmp = item.x.truncate();
-        int yTmp = item.y.truncate();
+        
+        int xTmp = item.x;
+        int yTmp = item.y;
         if(xTmp == _x && yTmp == _y) {
             return;
         }
-        _client.sendPos(xTmp, yTmp, item.isDrag ? 1: 0);
+
+        // _queue.add(item);
+        _client.sendPosAndFlush(item.x, item.y, item.isDrag ? 1: 0);
+
         _x = xTmp;
         _y = yTmp;
     }
@@ -48,14 +51,17 @@ class PositionSender {
                 'is_drag': element.isDrag,
             });
 
+            _client.sendPos(element.x, element.y, element.isDrag ? 1: 0);
             if (count > 40) {
                 // sendDraw(jsonArray);
+                _client.flush();
                 jsonArray = [];
                 count = 0;
             }
         }
 
         if (jsonArray.isNotEmpty) {
+            _client.flush();
             // sendDraw(jsonArray);
             // jsonArray = [];
         }

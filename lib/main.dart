@@ -31,14 +31,14 @@ class _CanvasPageState extends State<CanvasPage> {
     @override
     Widget build(BuildContext context) {
         return Scaffold(
-            appBar: AppBar(title: const Text('画板v1')),
+            appBar: AppBar(title: const Text('软定义手写板')),
             body: Listener(
                 // 落下
                 onPointerDown: (e) {
                     path.moveTo(e.localPosition.dx, e.localPosition.dy);
                     // logger.d('mvTo $e.localPosition.dx, $e.localPosition.dy');
                     // sendDraw(e.localPosition.dx, e.localPosition.dy, false);
-                    sender.addToSender(Position(e.localPosition.dx, e.localPosition.dy, false));
+                    sender.addToSender(Position(e.localPosition.dx.truncate(), e.localPosition.dy.truncate(), false));
                     setState(() {});
                 },
                 // 移动
@@ -46,14 +46,14 @@ class _CanvasPageState extends State<CanvasPage> {
                     // logger.d('lineTo $e.localPosition.dx, $e.localPosition.dy');
                     path.lineTo(e.localPosition.dx, e.localPosition.dy);
                     // sendDraw(e.localPosition.dx, e.localPosition.dy, true);
-                    sender.addToSender(Position(e.localPosition.dx, e.localPosition.dy, true));
+                    sender.addToSender(Position(e.localPosition.dx.truncate(), e.localPosition.dy.truncate(), true));
                     setState(() {});
                 },
                 // 离开
                 onPointerUp: (e) {
                     path.moveTo(e.localPosition.dx, e.localPosition.dy);
-                    sender.addToSender(Position(e.localPosition.dx, e.localPosition.dy, false));
                     path.close();
+                    sender.addToSender(Position(e.localPosition.dx.truncate(), e.localPosition.dy.truncate(), false));
                     setState(() {});
                 },
                 child: CustomPaint(
@@ -70,7 +70,7 @@ class CanvasPaint extends CustomPainter {
     Color? color; // 画笔颜色
     double? width;
 
-    CanvasPaint({required this.path, this.color = Colors.black, this.width = 5});
+    CanvasPaint({required this.path, this.color = Colors.black, this.width = 3});
 
     @override
     void paint(Canvas canvas, Size size) {
